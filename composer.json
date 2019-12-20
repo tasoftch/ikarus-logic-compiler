@@ -1,0 +1,23 @@
+{
+  "name": "ikarus/logic-compiler",
+  "license": "BSD-3-Clause",
+  "minimum-stability": "dev",
+  "description": "The Ikarus Logic Compiler translates your Ikarus Logic worksflows into executable structures, so an engine is able to run with it.",
+  "authors": [
+    {
+      "name": "Thomas Abplanalp",
+      "email": "info@tasoft.ch"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Ikarus\\Logic\\Compiler\\" : "src"
+    }
+  },
+  "require" : {
+    "php": "^7.2",
+    "ikarus/logic-model": "dev-master"
+  },
+  "require-dev": {
+  }
+}
