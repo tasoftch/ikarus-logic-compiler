@@ -53,8 +53,8 @@ class NodeComponentMappingCompiler extends AbstractCompiler
                                 $component = $this->getComponentModel()->getComponent( $nodeDataModel->getComponentName() );
 
                                 $components[ $nodeDataModel->getComponentName() ] = $component;
-                                $nodes[ $nodeDataModel->getIdentifier() ] = $nodeDataModel;
                             }
+                            $nodes[ $nodeDataModel->getIdentifier() ] = $nodeDataModel;
                         } catch (ComponentNotFoundException $exception) {
                             $e = new InvalidComponentReferenceException("Component %s does not exist", InvalidComponentReferenceException::CODE_SYMBOL_NOT_FOUND, $exception, $exception->getComponentName());
                             $e->setProperty($nodeDataModel);
