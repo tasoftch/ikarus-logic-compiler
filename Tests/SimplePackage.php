@@ -26,7 +26,7 @@ namespace Ikarus\Logic\Compiler\Test;
 
 use Ikarus\Logic\Model\Component\Socket\InputComponent;
 use Ikarus\Logic\Model\Component\Socket\OutputComponent;
-use Ikarus\Logic\Model\Component\StaticNodeComponent;
+use Ikarus\Logic\Model\Component\NodeComponent;
 use Ikarus\Logic\Model\Package\BasicTypesPackage;
 
 class SimplePackage extends BasicTypesPackage
@@ -35,11 +35,11 @@ class SimplePackage extends BasicTypesPackage
     {
         $components = parent::makeComponents();
 
-        $components[] = new StaticNodeComponent('simpleTest', [
+        $components[] = new NodeComponent('simpleTest', [
             new InputComponent("input1"),
             new InputComponent("input2", 'Boolean')
         ]);
-        $components[] = new StaticNodeComponent('otherTest', [
+        $components[] = new NodeComponent('otherTest', [
             new OutputComponent("output1", "String"),
             new OutputComponent("output2", "Number")
         ]);

@@ -36,7 +36,7 @@ use Ikarus\Logic\Compiler\Consistency\FullConsistencyCompiler;
 use Ikarus\Logic\Compiler\Consistency\SocketComponentMappingCompiler;
 use Ikarus\Logic\Model\Component\Socket\InputComponent;
 use Ikarus\Logic\Model\Component\Socket\OutputComponent;
-use Ikarus\Logic\Model\Component\StaticNodeComponent;
+use Ikarus\Logic\Model\Component\NodeComponent;
 use Ikarus\Logic\Model\Data\Loader\PHPArrayLoader;
 use Ikarus\Logic\Model\PriorityComponentModel;
 use PHPUnit\Framework\TestCase;
@@ -117,7 +117,7 @@ class ConsistencyCompilerTest extends TestCase
         $cModel = new PriorityComponentModel();
         $cModel->addPackage( new SimplePackage() );
 
-        $cModel->addComponent(new StaticNodeComponent("MyNode", [
+        $cModel->addComponent(new NodeComponent("MyNode", [
             new InputComponent("the-input", "Noneisting Type")
         ]));
 
@@ -309,7 +309,7 @@ class ConsistencyCompilerTest extends TestCase
         $cModel = new PriorityComponentModel();
         $cModel->addPackage( new SimplePackage() );
 
-        $cModel->addComponent( new StaticNodeComponent("recNode", [
+        $cModel->addComponent( new NodeComponent("recNode", [
             new InputComponent("input"),
             new OutputComponent("output")
         ]) );
