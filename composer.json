@@ -14,10 +14,16 @@
       "Ikarus\\Logic\\Compiler\\" : "src"
     }
   },
+  "autoload-dev": {
+    "psr-4": {
+      "Ikarus\\Logic\\Compiler\\Test\\": "Tests"
+    }
+  },
   "require" : {
     "php": "^7.2",
     "ikarus/logic-model": "dev-master"
   },
   "require-dev": {
+    "phpunit/phpunit": "^6"
   }
 }
