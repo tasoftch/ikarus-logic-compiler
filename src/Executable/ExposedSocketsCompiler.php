@@ -63,7 +63,7 @@ class ExposedSocketsCompiler extends AbstractCompiler
                     /** @var NodeDataModelInterface $node */
                     foreach($nodes as $node) {
                         if($node->getComponentName() == $component)
-                            $list[$component][$sname][$node->getIdentifier()] = $node;
+                            $list[$component][$sname][] = $node->getIdentifier();
                     }
                 };
 

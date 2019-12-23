@@ -22,20 +22,19 @@
  */
 
 /**
- * ExposedSocketsTest.php
+ * StoreExecutableTest.php
  * ikarus-logic-compiler
  *
- * Created on 2019-12-22 20:29 by thomas
+ * Created on 2019-12-23 18:26 by thomas
  */
 
 namespace Ikarus\Logic\Compiler\Test;
 
 use Ikarus\Logic\Compiler\CompilerResult;
 use Ikarus\Logic\Compiler\Consistency\FullConsistencyCompiler;
-use Ikarus\Logic\Compiler\Consistency\SocketComponentMappingCompiler;
-use Ikarus\Logic\Compiler\Executable\ExecutableCompiler;
-use Ikarus\Logic\Compiler\Executable\ExposedSocketsCompiler;
 use Ikarus\Logic\Compiler\Executable\FullExecutableCompiler;
+use Ikarus\Logic\Compiler\Storage\InMemoryStorageCompiler;
+use Ikarus\Logic\Compiler\Storage\PHPFileStorageCompiler;
 use Ikarus\Logic\Model\Component\NodeComponent;
 use Ikarus\Logic\Model\Component\Socket\ExposedInputComponent;
 use Ikarus\Logic\Model\Component\Socket\ExposedOutputComponent;
@@ -46,57 +45,9 @@ use Ikarus\Logic\Model\Package\BasicTypesPackage;
 use Ikarus\Logic\Model\PriorityComponentModel;
 use PHPUnit\Framework\TestCase;
 
-class ExecutableCompilationTest extends TestCase
+class StoreExecutableTest extends TestCase
 {
-    public function testExposedSockets() {
-        $cModel = new PriorityComponentModel();
-        $cModel->addPackage( new SimplePackage() );
-
-        $cModel->addComponent( new NodeComponent("EXP", [
-            new InputComponent("input1"),
-            new ExposedInputComponent("input2"),
-            new ExposedOutputComponent("output1")
-        ]));
-
-        $loader = new PHPArrayLoader([
-            PHPArrayLoader::SCENES_KEY => [
-                'myScene' => [
-                    PHPArrayLoader::NODES_KEY => [
-                        'node1' => [
-                            PHPArrayLoader::NAME_KEY => 'EXP'
-                        ],
-                        'node2' => [
-                            PHPArrayLoader::NAME_KEY => 'otherTest'
-                        ],
-                    ]
-                ]
-            ]
-        ]);
-        $loader->useIndicesAsIdentifiers = true;
-
-        $model = $loader->getModel();
-
-        $compiler = new SocketComponentMappingCompiler($cModel);
-
-        $result = new CompilerResult();
-        $compiler->compile($model, $result);
-
-        $compiler = new ExposedSocketsCompiler($cModel);
-        $compiler->compile($model, $result);
-
-        $this->assertSame([
-            "EXP" => [
-                'input2' => [
-                    'node1'
-                ],
-                'output1' => [
-                    'node1'
-                ]
-            ]
-        ], $result->getAttribute( ExposedSocketsCompiler::RESULT_ATTRIBUTE_EXPOSED_SOCKETS ));
-    }
-
-    public function testExecutableCompiler() {
+    private function prepareResult(&$cModel, &$model): CompilerResult {
         $cModel = new PriorityComponentModel();
         $cModel->addPackage( new BasicTypesPackage() );
 
@@ -189,99 +140,44 @@ class ExecutableCompilationTest extends TestCase
         $compiler = new FullExecutableCompiler($cModel);
         $compiler->compile($model, $result);
 
-        $this->assertEquals(["askForPermission", 'userInput'], array_keys( $result->getAttribute( ExposedSocketsCompiler::RESULT_ATTRIBUTE_EXPOSED_SOCKETS ) ));
-
-        $this->assertEquals([
-            "outputAnswer:clickedButton",
-            "showUser:message",
-            "myMath:leftOperand",
-            "myMath:rightOperand"
-        ], array_keys( $result->getAttribute( ExecutableCompiler::RESULT_ATTRIBUTE_EXECUTABLE )["i2o"] ));
+        return $result;
     }
 
-    /**
-     * @expectedException \Ikarus\Logic\Compiler\Exception\DuplicateSocketReferenceException
-     * @expectedExceptionCode 105
-     */
-    public function testDuplicateInputReferenceError() {
-        $cModel = new PriorityComponentModel();
-        $cModel->addPackage( new BasicTypesPackage() );
+    public function testMemoryStorage() {
+        $result = $this->prepareResult($cModel, $model);
 
-        $cModel->addComponent( new NodeComponent("math", [
-            new InputComponent("leftOperand", "Number"),
-            new InputComponent("rightOperand", "Number"),
-            new OutputComponent("result", "Number")
-        ]) );
+        $storage = new InMemoryStorageCompiler($cModel);
+        $storage->setMemory($memory);
+        $storage->compile($model, $result);
 
-        $cModel->addComponent( new NodeComponent("userInput", [
-            // If you have a node obtaining values, it will provide them via outputs to other nodes inputs.
-            new ExposedOutputComponent("enteredNumber", "Number")
-        ]) );
+        $this->assertEquals(["x", "X"], array_keys($memory));
+    }
 
-        $cModel->addComponent( new NodeComponent("displayDialog", [
-            new InputComponent("message", "String"),
-            new OutputComponent("clickedButton", "Number")
-        ]) );
+    public function testFileStorage() {
+        $result = $this->prepareResult($cModel, $model);
 
-        $cModel->addComponent( new NodeComponent("askForPermission", [
-            new ExposedInputComponent("clickedButton", "Number")
-        ]) );
+        if(file_exists("test.storage.php"))
+            unlink("test.storage.php");
 
-        $loader = new PHPArrayLoader([
-            PHPArrayLoader::SCENES_KEY => [
-                'myScene' => [
-                    PHPArrayLoader::NODES_KEY => [
-                        'askUser1' => [
-                            PHPArrayLoader::NAME_KEY => 'userInput',
-                            PHPArrayLoader::DATA_KEY => [
-                                'info' => 'Please enter the first operand'
-                            ]
-                        ],
-                        'askUser2' => [
-                            PHPArrayLoader::NAME_KEY => 'userInput',
-                            PHPArrayLoader::DATA_KEY => [
-                                'info' => 'Please enter the second operand'
-                            ]
-                        ],
-                        'myMath' => [
-                            PHPArrayLoader::NAME_KEY => 'math',
-                            PHPArrayLoader::DATA_KEY => [
-                                'operation' => '+'
-                            ]
-                        ],
-                        'showUser' => [
-                            PHPArrayLoader::NAME_KEY => 'displayDialog'
-                        ],
-                        'outputAnswer' => [
-                            PHPArrayLoader::NAME_KEY => 'askForPermission',
-                        ]
-                    ],
-                    PHPArrayLoader::CONNECTIONS_KEY => [
-                        [
-                            PHPArrayLoader::CONNECTION_INPUT_NODE_KEY => 'outputAnswer',
-                            PHPArrayLoader::CONNECTION_INPUT_KEY => 'clickedButton',
-                            PHPArrayLoader::CONNECTION_OUTPUT_NODE_KEY => 'showUser',
-                            PHPArrayLoader::CONNECTION_OUTPUT_KEY => 'clickedButton',
-                        ],
-                        [
-                            PHPArrayLoader::CONNECTION_INPUT_NODE_KEY => 'outputAnswer',
-                            PHPArrayLoader::CONNECTION_INPUT_KEY => 'clickedButton',        // Duplicate connection on the same input socket is not allowed
-                            PHPArrayLoader::CONNECTION_OUTPUT_NODE_KEY => 'showUser',
-                            PHPArrayLoader::CONNECTION_OUTPUT_KEY => 'clickedButton',
-                        ]
-                    ]
+        $storage = new PHPFileStorageCompiler($cModel);
+        $storage->setFilename("test.storage.php");
+        $storage->compile($model, $result);
+
+        $this->assertFileExists("test.storage.php");
+
+        $data = require "test.storage.php";
+        $this->assertEquals([
+            'askForPermission' => [
+                'clickedButton' => [
+                    'outputAnswer'
+                ]
+            ],
+            'userInput' => [
+                'enteredNumber' => [
+                    'askUser1',
+                    'askUser2'
                 ]
             ]
-        ]);
-        $loader->useIndicesAsIdentifiers = true;
-
-        $model = $loader->getModel();
-        $compiler = new FullConsistencyCompiler($cModel);
-
-        $result = new CompilerResult();
-        $compiler->compile($model, $result);
-
-        $compiler = new FullExecutableCompiler($cModel);
-        $compiler->compile($model, $result);
+        ], $data["x"]);
     }
 }
