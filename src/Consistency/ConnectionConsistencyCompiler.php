@@ -29,6 +29,7 @@ use Ikarus\Logic\Compiler\CompilerResult;
 use Ikarus\Logic\Compiler\Exception\InvalidNodeRecursionReferenceException;
 use Ikarus\Logic\Compiler\Exception\InvalidNodeReferenceException;
 use Ikarus\Logic\Compiler\Exception\InvalidSocketReferenceException;
+use Ikarus\Logic\Compiler\Exception\InvalidSocketTypesReferenceException;
 use Ikarus\Logic\Model\Component\NodeComponentInterface;
 use Ikarus\Logic\Model\Component\Socket\SocketComponentInterface;
 use Ikarus\Logic\Model\Data\DataModelInterface;
@@ -93,6 +94,17 @@ class ConnectionConsistencyCompiler extends AbstractCompiler
                                 if(!$outputSocketComponent) {
                                     $e = new InvalidSocketReferenceException("Output socket connection %s of node %s is not declared", InvalidSocketReferenceException::CODE_SYMBOL_NOT_FOUND, NULL, $connectionDataModel->getOutputSocketName(), $component->getName());
                                     $e->setProperty($connectionDataModel);
+                                    throw $e;
+                                }
+
+                                $inputType = $this->getComponentModel()->getSocketType( $inputSocketComponent->getSocketType() );
+                                $outputType = $this->getComponentModel()->getSocketType( $outputSocketComponent->getSocketType() );
+
+                                if(!$inputType->accepts($outputType)) {
+                                    $e = new InvalidSocketTypesReferenceException("Input %s (%s) does not allow values of type %s", InvalidSocketTypesReferenceException::CODE_INVALID_PLACEMENT, NULL, $inputSocketComponent->getName(), $inputType->getName(), $outputType->getName());
+                                    $e->setInputSocketType($inputType);
+                                    $e->setOutputSocketType($outputType);
+                                    $e->setProperty($inputNode);
                                     throw $e;
                                 }
 

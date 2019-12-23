@@ -38,6 +38,7 @@ use Ikarus\Logic\Model\Component\Socket\InputComponent;
 use Ikarus\Logic\Model\Component\Socket\OutputComponent;
 use Ikarus\Logic\Model\Component\NodeComponent;
 use Ikarus\Logic\Model\Data\Loader\PHPArrayLoader;
+use Ikarus\Logic\Model\Package\BasicTypesPackage;
 use Ikarus\Logic\Model\PriorityComponentModel;
 use PHPUnit\Framework\TestCase;
 
@@ -388,5 +389,51 @@ class ConsistencyCompilerTest extends TestCase
             $outputNode,
             $outputSocket
         ]], $result->getAttribute( ConnectionConsistencyCompiler::RESULT_ATTRIBUTE_CONNECTIONS ));
+    }
+
+    /**
+     * @expectedException \Ikarus\Logic\Compiler\Exception\InvalidSocketTypesReferenceException
+     * @expectedExceptionCode 102
+     */
+    public function testInvaidTypesConnection() {
+        $cModel = new PriorityComponentModel();
+        $cModel->addPackage( new BasicTypesPackage() );
+
+        $cModel->addComponent( new NodeComponent("NBR_NODE", [
+            new InputComponent("input", "Number")
+        ]) );
+        $cModel->addComponent( new NodeComponent("STR_NODE", [
+            new OutputComponent("output", "String")
+        ]) );
+
+        $loader = new PHPArrayLoader([
+            PHPArrayLoader::SCENES_KEY => [
+                'myScene' => [
+                    PHPArrayLoader::NODES_KEY => [
+                        'node1' => [
+                            PHPArrayLoader::NAME_KEY => 'NBR_NODE'
+                        ],
+                        'node2' => [
+                            PHPArrayLoader::NAME_KEY => 'STR_NODE'
+                        ],
+                    ],
+                    PHPArrayLoader::CONNECTIONS_KEY => [
+                        [
+                            PHPArrayLoader::CONNECTION_INPUT_NODE_KEY => 'node1',
+                            PHPArrayLoader::CONNECTION_INPUT_KEY => 'input',
+                            PHPArrayLoader::CONNECTION_OUTPUT_NODE_KEY => 'node2',
+                            PHPArrayLoader::CONNECTION_OUTPUT_KEY => 'output'
+                        ]
+                    ]
+                ]
+            ]
+        ]);
+        $loader->useIndicesAsIdentifiers = true;
+
+        $model = $loader->getModel();
+
+        $compiler = new FullConsistencyCompiler($cModel);
+        $result = new CompilerResult();
+        $compiler->compile($model, $result);
     }
 }
