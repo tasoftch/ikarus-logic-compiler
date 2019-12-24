@@ -85,12 +85,18 @@ class ExecutableCompilationTest extends TestCase
         $compiler->compile($model, $result);
 
         $this->assertSame([
-            "EXP" => [
-                'input2' => [
-                    'node1'
-                ],
-                'output1' => [
-                    'node1'
+            'i' => [
+                "EXP" => [
+                    'input2' => [
+                        'node1'
+                    ]
+                ]
+            ],
+            'o' => [
+                "EXP" => [
+                    'output1' => [
+                        'node1'
+                    ]
                 ]
             ]
         ], $result->getAttribute( ExposedSocketsCompiler::RESULT_ATTRIBUTE_EXPOSED_SOCKETS ));
@@ -189,7 +195,9 @@ class ExecutableCompilationTest extends TestCase
         $compiler = new FullExecutableCompiler($cModel);
         $compiler->compile($model, $result);
 
-        $this->assertEquals(["askForPermission", 'userInput'], array_keys( $result->getAttribute( ExposedSocketsCompiler::RESULT_ATTRIBUTE_EXPOSED_SOCKETS ) ));
+        $this->assertEquals(["askForPermission"], array_keys( $result->getAttribute( ExposedSocketsCompiler::RESULT_ATTRIBUTE_EXPOSED_SOCKETS )["i"] ));
+        $this->assertEquals(['userInput'], array_keys( $result->getAttribute( ExposedSocketsCompiler::RESULT_ATTRIBUTE_EXPOSED_SOCKETS )["o"] ));
+
 
         $this->assertEquals([
             "outputAnswer:clickedButton",

@@ -59,11 +59,11 @@ class ExposedSocketsCompiler extends AbstractCompiler
                 $nodes = $result->getAttribute(NodeComponentMappingCompiler::RESULT_ATTRIBUTE_NODES);
                 $exposedSockets = [];
 
-                $findNodes = function($component, $sname, &$list) use ($nodes) {
+                $findNodes = function($component, $sname, $md, &$list) use ($nodes) {
                     /** @var NodeDataModelInterface $node */
                     foreach($nodes as $node) {
                         if($node->getComponentName() == $component)
-                            $list[$component][$sname][] = $node->getIdentifier();
+                            $list[$md][$component][$sname][] = $node->getIdentifier();
                     }
                 };
 
@@ -75,14 +75,14 @@ class ExposedSocketsCompiler extends AbstractCompiler
                 foreach($sockets["inputs"] as $sid => $socket) {
                     if($socket instanceof ExposedSocketComponentInterface) {
                         list($compName, $sid) = explode(":", $sid);
-                        $findNodes($compName, $sid, $exposedSockets);
+                        $findNodes($compName, $sid, 'i',$exposedSockets);
                     }
                 }
 
                 foreach($sockets["outputs"] as $sid => $socket) {
                     if($socket instanceof ExposedSocketComponentInterface) {
                         list($compName, $sid) = explode(":", $sid);
-                        $findNodes($compName, $sid, $exposedSockets);
+                        $findNodes($compName, $sid, 'o', $exposedSockets);
                     }
                 }
 

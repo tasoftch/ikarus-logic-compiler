@@ -167,15 +167,19 @@ class StoreExecutableTest extends TestCase
 
         $data = require "test.storage.php";
         $this->assertEquals([
-            'askForPermission' => [
-                'clickedButton' => [
-                    'outputAnswer'
+            'i' => [
+                'askForPermission' => [
+                    'clickedButton' => [
+                        'outputAnswer'
+                    ]
                 ]
             ],
-            'userInput' => [
-                'enteredNumber' => [
-                    'askUser1',
-                    'askUser2'
+            'o' => [
+                'userInput' => [
+                    'enteredNumber' => [
+                        'askUser1',
+                        'askUser2'
+                    ]
                 ]
             ]
         ], $data["x"]);
