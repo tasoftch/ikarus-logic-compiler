@@ -29,6 +29,7 @@ use Ikarus\Logic\Compiler\CompilerResult;
 use Ikarus\Logic\Compiler\Consistency\ConnectionConsistencyCompiler;
 use Ikarus\Logic\Compiler\Consistency\SocketComponentMappingCompiler;
 use Ikarus\Logic\Compiler\Exception\DuplicateSocketReferenceException;
+use Ikarus\Logic\Compiler\Exception\MissingSignalExecutableException;
 use Ikarus\Logic\Model\Component\Socket\InputSocketComponentInterface;
 use Ikarus\Logic\Model\Component\Socket\OutputSocketComponentInterface;
 use Ikarus\Logic\Model\Component\Socket\Type\SignalTypeInterface;
@@ -37,6 +38,8 @@ use Ikarus\Logic\Model\Data\DataModelInterface;
 use Ikarus\Logic\Model\Data\Node\AttributedNodeDataModel;
 use Ikarus\Logic\Model\Data\Node\NodeDataModelInterface;
 use Ikarus\Logic\Model\Exception\InconsistentDataModelException;
+use Ikarus\Logic\Model\Executable\ExecutableExpressionNodeComponentInterface;
+use Ikarus\Logic\Model\Executable\ExecutableSignalTriggerNodeComponentInterface;
 
 class ExecutableCompiler extends AbstractCompiler
 {
@@ -69,9 +72,17 @@ class ExecutableCompiler extends AbstractCompiler
                             // Is signal socket
                             $nodeData = [
                                 'dn' => $inputNode->getIdentifier(),
-                                'dc' => $this->getComponentModel()->getComponent( $inputNode->getComponentName() ),
+                                'dc' => $dc = $this->getComponentModel()->getComponent( $inputNode->getComponentName() ),
                                 'dk' => $inputSocketComponent->getName()
                             ];
+
+                            if(!($dc instanceof ExecutableSignalTriggerNodeComponentInterface)) {
+                                $e = new MissingSignalExecutableException("Node component %s has a connection to signal socket %s but does not implement ExecutableSignalTriggerNodeComponentInterface",
+                                    MissingSignalExecutableException::CODE_SYMBOL_NOT_FOUND, NULL, $dc->getName(), $inputSocketComponent->getName());
+                                $e->setProperty($inputNode);
+                                throw $e;
+                            }
+
                             if($inputNode instanceof AttributedNodeDataModel)
                                 $nodeData["a"] = $inputNode->getAttributes();
 
@@ -90,9 +101,17 @@ class ExecutableCompiler extends AbstractCompiler
                             // Is expression socket
                             $nodeData = [
                                 'dn' => $outputNode->getIdentifier(),
-                                'dc' => $this->getComponentModel()->getComponent( $outputNode->getComponentName() ),
+                                'dc' => $dc = $this->getComponentModel()->getComponent( $outputNode->getComponentName() ),
                                 'dk' => $outputSocketComponent->getName()
                             ];
+
+                            if(!($dc instanceof ExecutableSignalTriggerNodeComponentInterface) && !($dc instanceof ExecutableExpressionNodeComponentInterface)) {
+                                $e = new MissingSignalExecutableException("Node component %s has a connection from socket %s but does not implement ExecutableSignalTriggerNodeComponentInterface or ExecutableExpressionNodeComponentInterface",
+                                    MissingSignalExecutableException::CODE_SYMBOL_NOT_FOUND, NULL, $dc->getName(), $outputSocketComponent->getName());
+                                $e->setProperty($inputNode);
+                                throw $e;
+                            }
+
                             if($outputNode instanceof AttributedNodeDataModel)
                                 $nodeData["a"] = $outputNode->getAttributes();
 

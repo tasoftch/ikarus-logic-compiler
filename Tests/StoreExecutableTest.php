@@ -35,7 +35,7 @@ use Ikarus\Logic\Compiler\Consistency\FullConsistencyCompiler;
 use Ikarus\Logic\Compiler\Executable\FullExecutableCompiler;
 use Ikarus\Logic\Compiler\Storage\InMemoryStorageCompiler;
 use Ikarus\Logic\Compiler\Storage\PHPFileStorageCompiler;
-use Ikarus\Logic\Model\Component\NodeComponent;
+use Ikarus\Logic\Model\Component\ExecutableNodeComponent;
 use Ikarus\Logic\Model\Component\Socket\ExposedInputComponent;
 use Ikarus\Logic\Model\Component\Socket\ExposedOutputComponent;
 use Ikarus\Logic\Model\Component\Socket\InputComponent;
@@ -51,23 +51,23 @@ class StoreExecutableTest extends TestCase
         $cModel = new PriorityComponentModel();
         $cModel->addPackage( new BasicTypesPackage() );
 
-        $cModel->addComponent( new NodeComponent("math", [
+        $cModel->addComponent( new ExecutableNodeComponent("math", [
             new InputComponent("leftOperand", "Number"),
             new InputComponent("rightOperand", "Number"),
             new OutputComponent("result", "Number")
         ]) );
 
-        $cModel->addComponent( new NodeComponent("userInput", [
+        $cModel->addComponent( new ExecutableNodeComponent("userInput", [
             // If you have a node obtaining values, it will provide them via outputs to other nodes inputs.
             new ExposedOutputComponent("enteredNumber", "Number")
         ]) );
 
-        $cModel->addComponent( new NodeComponent("displayDialog", [
+        $cModel->addComponent( new ExecutableNodeComponent("displayDialog", [
             new InputComponent("message", "String"),
             new OutputComponent("clickedButton", "Number")
         ]) );
 
-        $cModel->addComponent( new NodeComponent("askForPermission", [
+        $cModel->addComponent( new ExecutableNodeComponent("askForPermission", [
             new ExposedInputComponent("clickedButton", "Number")
         ]) );
 
