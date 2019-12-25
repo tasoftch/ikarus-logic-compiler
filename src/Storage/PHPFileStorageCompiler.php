@@ -48,12 +48,6 @@ class PHPFileStorageCompiler extends AbstractCompiler
                     throw new LogicException("No executable found", LogicException::CODE_SYMBOL_NOT_FOUND);
                 }
 
-                foreach($exec["i2o"] as $key => &$datas) {
-                    foreach($datas as &$data) {
-                        $data["dc"] = $data["dc"]->getName();
-                    }
-                }
-
                 $exposed = $result->getAttribute( ExposedSocketsCompiler::RESULT_ATTRIBUTE_EXPOSED_SOCKETS );
 
                 file_put_contents( $this->getFilename(), sprintf("<?php\nreturn unserialize(%s);", var_export( serialize(['x' => $exposed, 'X' => $exec]), true ) ));

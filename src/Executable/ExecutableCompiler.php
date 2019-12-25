@@ -53,7 +53,14 @@ class ExecutableCompiler extends AbstractCompiler
                 /** @var TypeInterface[] $types */
                 $types = $result->getAttribute( SocketComponentMappingCompiler::RESULT_ATTRIBUTE_TYPES );
 
-                $exec = ['i2o' => [], 'o2i' => []];
+                $exec = ['i2o' => [], 'o2i' => [], 'nd' => []];
+                $registerNode = function(NodeDataModelInterface $node) use (&$exec) {
+                    if(!isset($exec["nd"][$node->getIdentifier()])) {
+                        $exec["nd"][$node->getIdentifier()]['c'] = $node->getComponentName();
+                        if($node instanceof AttributedNodeDataModel)
+                            $exec["nd"][$node->getIdentifier()]['a'] = $node->getAttributes();
+                    }
+                };
 
                 if(NULL !== $connections) {
                     foreach($connections as $connection) {
@@ -66,15 +73,17 @@ class ExecutableCompiler extends AbstractCompiler
                         list($inputNode, $inputSocketComponent, $outputNode, $outputSocketComponent) = $connection;
                         $inputType = $types[ $inputSocketComponent->getSocketType() ];
 
-
+                        $registerNode($inputNode);
+                        $registerNode($outputNode);
 
                         if($inputType instanceof SignalTypeInterface) {
                             // Is signal socket
                             $nodeData = [
                                 'dn' => $inputNode->getIdentifier(),
-                                'dc' => $dc = $this->getComponentModel()->getComponent( $inputNode->getComponentName() ),
                                 'dk' => $inputSocketComponent->getName()
                             ];
+
+                            $dc = $this->getComponentModel()->getComponent( $inputNode->getComponentName() );
 
                             if(!($dc instanceof ExecutableSignalTriggerNodeComponentInterface)) {
                                 $e = new MissingSignalExecutableException("Node component %s has a connection to signal socket %s but does not implement ExecutableSignalTriggerNodeComponentInterface",
@@ -82,9 +91,6 @@ class ExecutableCompiler extends AbstractCompiler
                                 $e->setProperty($inputNode);
                                 throw $e;
                             }
-
-                            if($inputNode instanceof AttributedNodeDataModel)
-                                $nodeData["a"] = $inputNode->getAttributes();
 
                             $k = sprintf( "%s:%s", $outputNode->getIdentifier(), $outputSocketComponent->getName() );
                             $q = 'o2i';
@@ -101,9 +107,10 @@ class ExecutableCompiler extends AbstractCompiler
                             // Is expression socket
                             $nodeData = [
                                 'dn' => $outputNode->getIdentifier(),
-                                'dc' => $dc = $this->getComponentModel()->getComponent( $outputNode->getComponentName() ),
                                 'dk' => $outputSocketComponent->getName()
                             ];
+
+                            $dc = $this->getComponentModel()->getComponent( $outputNode->getComponentName() );
 
                             if(!($dc instanceof ExecutableSignalTriggerNodeComponentInterface) && !($dc instanceof ExecutableExpressionNodeComponentInterface)) {
                                 $e = new MissingSignalExecutableException("Node component %s has a connection from socket %s but does not implement ExecutableSignalTriggerNodeComponentInterface or ExecutableExpressionNodeComponentInterface",
@@ -111,9 +118,6 @@ class ExecutableCompiler extends AbstractCompiler
                                 $e->setProperty($inputNode);
                                 throw $e;
                             }
-
-                            if($outputNode instanceof AttributedNodeDataModel)
-                                $nodeData["a"] = $outputNode->getAttributes();
 
                             $k = sprintf( "%s:%s", $inputNode->getIdentifier(), $inputSocketComponent->getName() );
                             $q = 'i2o';
