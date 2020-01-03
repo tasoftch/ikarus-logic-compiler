@@ -136,6 +136,9 @@ class ExecutableCompiler extends AbstractCompiler
                     }
                 }
 
+                if(!$exec["nd"])
+                    trigger_error("Project has no active node", E_USER_WARNING);
+
                 $result->addAttribute( static::RESULT_ATTRIBUTE_EXECUTABLE, $exec );
             } catch (InconsistentDataModelException $exception) {
                 $exception->setModel($dataModel);

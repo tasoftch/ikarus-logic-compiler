@@ -72,17 +72,21 @@ class ExposedSocketsCompiler extends AbstractCompiler
                  * @var string $sid
                  * @var InputSocketComponentInterface $socket
                  */
-                foreach($sockets["inputs"] as $sid => $socket) {
-                    if($socket instanceof ExposedSocketComponentInterface) {
-                        list($compName, $sid) = explode(":", $sid);
-                        $findNodes($compName, $sid, 'i',$exposedSockets);
+                if(isset($sockets["inputs"])) {
+                    foreach($sockets["inputs"] as $sid => $socket) {
+                        if($socket instanceof ExposedSocketComponentInterface) {
+                            list($compName, $sid) = explode(":", $sid);
+                            $findNodes($compName, $sid, 'i',$exposedSockets);
+                        }
                     }
                 }
 
-                foreach($sockets["outputs"] as $sid => $socket) {
-                    if($socket instanceof ExposedSocketComponentInterface) {
-                        list($compName, $sid) = explode(":", $sid);
-                        $findNodes($compName, $sid, 'o', $exposedSockets);
+                if(isset($sockets["outputs"])) {
+                    foreach($sockets["outputs"] as $sid => $socket) {
+                        if($socket instanceof ExposedSocketComponentInterface) {
+                            list($compName, $sid) = explode(":", $sid);
+                            $findNodes($compName, $sid, 'o', $exposedSockets);
+                        }
                     }
                 }
 
