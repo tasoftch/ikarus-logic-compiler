@@ -71,6 +71,8 @@ class ExecutableCompiler extends AbstractCompiler
                          * @var OutputSocketComponentInterface $outputSocketComponent
                          */
                         list($inputNode, $inputSocketComponent, $outputNode, $outputSocketComponent) = $connection;
+                        $isGateway = $connection["gw"] ?? false;
+
                         $inputType = $types[ $inputSocketComponent->getSocketType() ];
 
                         $registerNode($inputNode);
@@ -103,6 +105,11 @@ class ExecutableCompiler extends AbstractCompiler
                                 $e->setProperty($outputSocketComponent);
                                 throw $e;
                             }
+
+                            switch ($isGateway) {
+                                case '-': $isGateway = '+'; break;
+                                case '+': $isGateway = '-'; break;
+                            }
                         } else {
                             // Is expression socket
                             $nodeData = [
@@ -131,6 +138,9 @@ class ExecutableCompiler extends AbstractCompiler
                                 throw $e;
                             }
                         }
+
+                        if($isGateway)
+                            $nodeData["gw"] = $isGateway;
 
                         $exec[$q][$k][] = $nodeData;
                     }

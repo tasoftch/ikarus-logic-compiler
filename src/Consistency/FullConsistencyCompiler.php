@@ -34,6 +34,7 @@ class FullConsistencyCompiler extends ChainCompiler
         parent::__construct($componentModel);
         $this->addCompiler( new NodeComponentMappingCompiler($componentModel) );
         $this->addCompiler( new SocketComponentMappingCompiler($componentModel) );
+        $this->addCompiler( new GatewayConsistencyCompiler($componentModel) );
         $this->addCompiler( new ConnectionConsistencyCompiler($componentModel) );
     }
 }

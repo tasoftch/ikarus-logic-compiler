@@ -44,6 +44,10 @@ class ConnectionConsistencyCompiler extends AbstractCompiler
         return new NodeComponentMappingCompiler($this->getComponentModel());
     }
 
+    protected function getGatewayCompiler(): GatewayConsistencyCompiler {
+        return new GatewayConsistencyCompiler( $this->getComponentModel() );
+    }
+
     public function compile(DataModelInterface $dataModel, CompilerResult $result)
     {
         if($result->isSuccess()) {
@@ -56,6 +60,12 @@ class ConnectionConsistencyCompiler extends AbstractCompiler
                     $components = $result->getAttribute( NodeComponentMappingCompiler::RESULT_ATTRIBUTE_COMPONENTS );
                 }
 
+                $gateways = $result->getAttribute( GatewayConsistencyCompiler::RESULT_ATTRIBUTE_GATEWAYS );
+                if(NULL === $gateways) {
+                    $this->getGatewayCompiler()->compile($dataModel, $result);
+                    $gateways = $result->getAttribute( GatewayConsistencyCompiler::RESULT_ATTRIBUTE_GATEWAYS );
+                }
+
                 $nodes = $result->getAttribute( NodeComponentMappingCompiler::RESULT_ATTRIBUTE_NODES );
                 $connections = [];
 
@@ -64,17 +74,26 @@ class ConnectionConsistencyCompiler extends AbstractCompiler
                         /** @var NodeDataModelInterface $inputNode */
                         if($inputNode = $nodes[ $connectionDataModel->getInputNodeIdentifier() ] ?? NULL) {
 
-                            $findSocket = function($name, $sockets) {
+                            $findSocket = function($name, $sockets, NodeDataModelInterface $node, &$gateway) use ($gateways) {
                                 /** @var SocketComponentInterface $socket */
+                                $gateway = false;
                                 foreach($sockets as $socket) {
                                     if($socket->getName() == $name)
                                         return $socket;
                                 }
+                                // Internal gateway resolution
+                                if(isset($gateways[ $node->getIdentifier() ][$name])) {
+                                    list($sck, $gateway) = $gateways[ $node->getIdentifier() ][$name];
+                                    return $sck;
+                                }
+
                                 return NULL;
                             };
 
                             $component = $components[ $inputNode->getComponentName() ];
-                            $inputSocketComponent = $findSocket( $connectionDataModel->getInputSocketName(), $component->getInputSockets() );
+                            $go = $gi = NULL;
+
+                            $inputSocketComponent = $findSocket( $connectionDataModel->getInputSocketName(), $component->getInputSockets(), $inputNode, $gi);
                             if(!$inputSocketComponent) {
                                 $e = new InvalidSocketReferenceException("Input socket connection %s of node %s is not declared", InvalidSocketReferenceException::CODE_SYMBOL_NOT_FOUND, NULL, $connectionDataModel->getInputSocketName(), $component->getName());
                                 $e->setProperty($connectionDataModel);
@@ -90,7 +109,7 @@ class ConnectionConsistencyCompiler extends AbstractCompiler
                                 }
 
                                 $component = $components[ $outputNode->getComponentName() ];
-                                $outputSocketComponent = $findSocket( $connectionDataModel->getOutputSocketName(), $component->getOutputSockets() );
+                                $outputSocketComponent = $findSocket( $connectionDataModel->getOutputSocketName(), $component->getOutputSockets(), $outputNode, $go);
                                 if(!$outputSocketComponent) {
                                     $e = new InvalidSocketReferenceException("Output socket connection %s of node %s is not declared", InvalidSocketReferenceException::CODE_SYMBOL_NOT_FOUND, NULL, $connectionDataModel->getOutputSocketName(), $component->getName());
                                     $e->setProperty($connectionDataModel);
@@ -108,12 +127,26 @@ class ConnectionConsistencyCompiler extends AbstractCompiler
                                     throw $e;
                                 }
 
-                                $connections[] = [
-                                    $inputNode,
-                                    $inputSocketComponent,
-                                    $outputNode,
-                                    $outputSocketComponent
-                                ];
+                                if($gi||$go) {
+                                    $gw = "-";
+                                    if($go)
+                                        $gw = '+';
+
+                                    $connections[] = [
+                                        $gi?:$inputNode,
+                                        $inputSocketComponent,
+                                        $go?:$outputNode,
+                                        $outputSocketComponent,
+                                        'gw' => $gw
+                                    ];
+                                } else {
+                                    $connections[] = [
+                                        $inputNode,
+                                        $inputSocketComponent,
+                                        $outputNode,
+                                        $outputSocketComponent
+                                    ];
+                                }
                             } else {
                                 $e = new InvalidNodeReferenceException("Connection output node %s does not exist", InvalidNodeReferenceException::CODE_SYMBOL_NOT_FOUND, NULL, $connectionDataModel->getOutputNodeIdentifier());
                                 $e->setProperty($connectionDataModel);

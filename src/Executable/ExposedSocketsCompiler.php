@@ -33,6 +33,7 @@ use Ikarus\Logic\Model\Component\Socket\ExposedSocketComponentInterface;
 use Ikarus\Logic\Model\Component\Socket\InputSocketComponentInterface;
 use Ikarus\Logic\Model\Data\DataModelInterface;
 use Ikarus\Logic\Model\Data\Node\NodeDataModelInterface;
+use Ikarus\Logic\Model\Data\Scene\AttributedSceneDataModelInterface;
 use Ikarus\Logic\Model\Exception\InconsistentDataModelException;
 
 class ExposedSocketsCompiler extends AbstractCompiler
@@ -59,10 +60,24 @@ class ExposedSocketsCompiler extends AbstractCompiler
                 $nodes = $result->getAttribute(NodeComponentMappingCompiler::RESULT_ATTRIBUTE_NODES);
                 $exposedSockets = [];
 
-                $findNodes = function($component, $sname, $md, &$list) use ($nodes) {
+                $isSilent = function($nodeID) use ($dataModel, &$silentCache) {
+                    if(!isset($silentCache[$nodeID])) {
+                        foreach($dataModel->getSceneDataModels() as $sceneDataModel) {
+                            foreach($dataModel->getNodesInScene( $sceneDataModel ) as $node) {
+                                if($node->getIdentifier() == $nodeID) {
+                                    $silentCache[$nodeID] = $sceneDataModel instanceof AttributedSceneDataModelInterface ? ($sceneDataModel->getAttributes()[AttributedSceneDataModelInterface::ATTR_HIDDEN] ) : 0;
+                                    break 2;
+                                }
+                            }
+                        }
+                    }
+                    return (bool) $silentCache[$nodeID] ?? false;
+                };
+
+                $findNodes = function($component, $sname, $md, &$list) use ($nodes, $isSilent) {
                     /** @var NodeDataModelInterface $node */
                     foreach($nodes as $node) {
-                        if($node->getComponentName() == $component)
+                        if($node->getComponentName() == $component && !$isSilent($node->getIdentifier()))
                             $list[$md][$component][$sname][] = $node->getIdentifier();
                     }
                 };

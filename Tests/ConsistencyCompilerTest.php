@@ -33,12 +33,16 @@ namespace Ikarus\Logic\Compiler\Test;
 use Ikarus\Logic\Compiler\CompilerResult;
 use Ikarus\Logic\Compiler\Consistency\ConnectionConsistencyCompiler;
 use Ikarus\Logic\Compiler\Consistency\FullConsistencyCompiler;
+use Ikarus\Logic\Compiler\Consistency\GatewayConsistencyCompiler;
 use Ikarus\Logic\Compiler\Consistency\SocketComponentMappingCompiler;
+use Ikarus\Logic\Component\SceneGatewayComponent;
 use Ikarus\Logic\Model\Component\Socket\InputComponent;
 use Ikarus\Logic\Model\Component\Socket\OutputComponent;
 use Ikarus\Logic\Model\Component\NodeComponent;
 use Ikarus\Logic\Model\Data\Loader\PHPArrayLoader;
+use Ikarus\Logic\Model\DataModel;
 use Ikarus\Logic\Model\Package\BasicTypesPackage;
+use Ikarus\Logic\Model\Package\ExposedSocketsPackage;
 use Ikarus\Logic\Model\PriorityComponentModel;
 use PHPUnit\Framework\TestCase;
 
@@ -435,5 +439,110 @@ class ConsistencyCompilerTest extends TestCase
         $compiler = new FullConsistencyCompiler($cModel);
         $result = new CompilerResult();
         $compiler->compile($model, $result);
+    }
+
+    /**
+     * @expectedException \Ikarus\Logic\Model\Exception\InconsistentComponentModelException
+     * @expectedExceptionCode 77
+     */
+    public function testWrongComponentGatewaysDataModel() {
+        $cModel = (new PriorityComponentModel())
+            ->addPackage(new BasicTypesPackage())
+            ->addComponent(new NodeComponent("IKARUS.GATEWAY", []))
+        ;
+
+        $dModel = (new DataModel())
+            ->addScene("myScene")
+            ->addNode("node", 'IKARUS.GATEWAY', 'myScene')
+            ->pair('myScene', 'node', [])
+        ;
+
+        $compiler = new GatewayConsistencyCompiler($cModel);
+
+        $result = new CompilerResult();
+
+        $compiler->compile($dModel, $result);
+
+        print_r($result);
+    }
+
+    public function testEmptyGatewaysDataModel() {
+        $cModel = (new PriorityComponentModel())
+            ->addPackage(new BasicTypesPackage())
+            ->addComponent(new SceneGatewayComponent())
+        ;
+
+        $dModel = (new DataModel())
+            ->addScene("myScene")
+            ->addNode("node", 'IKARUS.GATEWAY', 'myScene')
+            ->pair('myScene', 'node', [])
+        ;
+
+        $compiler = new GatewayConsistencyCompiler($cModel);
+
+        $result = new CompilerResult();
+
+        $compiler->compile($dModel, $result);
+
+        $this->assertEmpty($result->getAttribute( GatewayConsistencyCompiler::RESULT_ATTRIBUTE_GATEWAYS ));
+    }
+
+    public function testSimpleGateway() {
+        $cModel = (new PriorityComponentModel())
+            ->addPackage(new BasicTypesPackage())
+            ->addComponent(new SceneGatewayComponent())
+            ->addPackage(new ExposedSocketsPackage('Any'))
+        ;
+
+        $dModel = (new DataModel())
+            ->addScene("myScene")
+            ->addNode("node", 'IKARUS.GATEWAY', 'myScene')
+            ->addNode("out", "IKARUS.OUT.ANY", 'myScene')
+            ->addNode('in', 'IKARUS.IN.ANY', 'myScene')
+
+            ->addScene("linked")
+            ->addNode("exp_input", 'IKARUS.IN.ANY', 'linked')
+            ->addNode("exp_output", 'IKARUS.OUT.ANY', 'linked')
+
+            ->connect('node', 'myInput', 'in', 'output')
+            ->connect('out', 'input', 'node', 'myOutput')
+
+            ->pair('linked', 'node', [
+                'myInput' => 'exp_input.output',
+                'myOutput' => 'exp_output.input'
+            ])
+        ;
+
+
+        $compiler = new FullConsistencyCompiler($cModel);
+
+        $result = new CompilerResult();
+
+        $compiler->compile($dModel, $result);
+
+        $nodeIN = $dModel->getNodesInScene('myScene')["in"];
+        $nodeOUT = $dModel->getNodesInScene('myScene')["out"];
+        $exp_input = $dModel->getNodesInScene('linked')["exp_input"];
+        $exp_output = $dModel->getNodesInScene('linked')["exp_output"];
+
+        $in_any = $cModel->getComponent( 'IKARUS.IN.ANY' )->getOutputSockets()["output"];
+        $out_any = $cModel->getComponent( 'IKARUS.OUT.ANY' )->getInputSockets()["input"];
+
+        $this->assertEquals([
+            [
+                $exp_input,
+                $in_any,
+                $nodeIN,
+                $in_any,
+                'gw' => '-'
+            ],
+            [
+                $nodeOUT,
+                $out_any,
+                $exp_output,
+                $out_any,
+                'gw' => '+'
+            ]
+        ], $result->getAttribute( ConnectionConsistencyCompiler::RESULT_ATTRIBUTE_CONNECTIONS ));
     }
 }

@@ -36,6 +36,8 @@ use Ikarus\Logic\Compiler\Consistency\SocketComponentMappingCompiler;
 use Ikarus\Logic\Compiler\Executable\ExecutableCompiler;
 use Ikarus\Logic\Compiler\Executable\ExposedSocketsCompiler;
 use Ikarus\Logic\Compiler\Executable\FullExecutableCompiler;
+use Ikarus\Logic\Compiler\StandardCompiler;
+use Ikarus\Logic\Component\SceneGatewayComponent;
 use Ikarus\Logic\Model\Component\ExecutableNodeComponent;
 use Ikarus\Logic\Model\Component\NodeComponent;
 use Ikarus\Logic\Model\Component\Socket\ExposedInputComponent;
@@ -43,7 +45,10 @@ use Ikarus\Logic\Model\Component\Socket\ExposedOutputComponent;
 use Ikarus\Logic\Model\Component\Socket\InputComponent;
 use Ikarus\Logic\Model\Component\Socket\OutputComponent;
 use Ikarus\Logic\Model\Data\Loader\PHPArrayLoader;
+use Ikarus\Logic\Model\Data\Scene\AttributedSceneDataModelInterface;
+use Ikarus\Logic\Model\DataModel;
 use Ikarus\Logic\Model\Package\BasicTypesPackage;
+use Ikarus\Logic\Model\Package\ExposedSocketsPackage;
 use Ikarus\Logic\Model\PriorityComponentModel;
 use PHPUnit\Framework\TestCase;
 
@@ -292,5 +297,228 @@ class ExecutableCompilationTest extends TestCase
 
         $compiler = new FullExecutableCompiler($cModel);
         $compiler->compile($model, $result);
+    }
+
+    public function testGatewayExposedCompilation() {
+        $cModel = (new PriorityComponentModel())
+            ->addPackage(new BasicTypesPackage())
+            ->addComponent(new SceneGatewayComponent())
+            ->addPackage(new ExposedSocketsPackage('Any'))
+        ;
+
+        $dModel = (new DataModel())
+            ->addScene("myScene")
+            ->addNode("node", 'IKARUS.GATEWAY', 'myScene')
+            ->addNode("out", "IKARUS.OUT.ANY", 'myScene')
+            ->addNode('in', 'IKARUS.IN.ANY', 'myScene')
+
+            ->addScene("linked")
+            ->addNode("exp_input", 'IKARUS.IN.ANY', 'linked')
+            ->addNode("exp_output", 'IKARUS.OUT.ANY', 'linked')
+
+            ->connect('node', 'myInput', 'in', 'output')
+            ->connect('out', 'input', 'node', 'myOutput')
+            ->connect("exp_output", 'input', 'exp_input', 'output')
+
+            ->pair('linked', 'node', [
+                'myInput' => 'exp_input.output',
+                'myOutput' => 'exp_output.input'
+            ])
+        ;
+
+
+        $compiler = new StandardCompiler($cModel);
+
+        $result = new CompilerResult();
+
+        $compiler->compile($dModel, $result);
+
+        $this->assertEquals([
+            'i' => [
+                'IKARUS.OUT.ANY' => [
+                    'input' => [
+                        'out',
+                        'exp_output'
+                    ]
+                ]
+            ],
+            'o' => [
+                'IKARUS.IN.ANY' => [
+                    'output' => [
+                        'in',
+                        'exp_input'
+                    ]
+                ]
+            ]
+        ], $result->getAttribute( ExposedSocketsCompiler::RESULT_ATTRIBUTE_EXPOSED_SOCKETS ));
+    }
+
+
+    public function testGatewayExposedSilentCompilation() {
+        $cModel = (new PriorityComponentModel())
+            ->addPackage(new BasicTypesPackage())
+            ->addComponent(new SceneGatewayComponent())
+            ->addPackage(new ExposedSocketsPackage('Any'))
+        ;
+
+        $dModel = (new DataModel())
+            ->addScene("myScene")
+            ->addNode("node", 'IKARUS.GATEWAY', 'myScene')
+            ->addNode("out", "IKARUS.OUT.ANY", 'myScene')
+            ->addNode('in', 'IKARUS.IN.ANY', 'myScene')
+
+            ->addScene("linked", [ AttributedSceneDataModelInterface::ATTR_HIDDEN => 1 ])
+            ->addNode("exp_input", 'IKARUS.IN.ANY', 'linked')
+            ->addNode("exp_output", 'IKARUS.OUT.ANY', 'linked')
+
+            ->connect('node', 'myInput', 'in', 'output')
+            ->connect('out', 'input', 'node', 'myOutput')
+            ->connect("exp_output", 'input', 'exp_input', 'output')
+
+            ->pair('linked', 'node', [
+                'myInput' => 'exp_input.output',
+                'myOutput' => 'exp_output.input'
+            ])
+        ;
+
+
+        $compiler = new StandardCompiler($cModel);
+
+        $result = new CompilerResult();
+
+        $compiler->compile($dModel, $result);
+
+        $this->assertEquals([
+            'i' => [
+                'IKARUS.OUT.ANY' => [
+                    'input' => [
+                        'out'
+                    ]
+                ]
+            ],
+            'o' => [
+                'IKARUS.IN.ANY' => [
+                    'output' => [
+                        'in'
+                    ]
+                ]
+            ]
+        ], $result->getAttribute( ExposedSocketsCompiler::RESULT_ATTRIBUTE_EXPOSED_SOCKETS ));
+    }
+
+    public function testGatewayCompilation() {
+        $cModel = (new PriorityComponentModel())
+            ->addPackage(new BasicTypesPackage())
+            ->addComponent(new SceneGatewayComponent())
+            ->addPackage(new ExposedSocketsPackage('Any'))
+        ;
+
+        $dModel = (new DataModel())
+            ->addScene("myScene")
+            ->addNode("node", 'IKARUS.GATEWAY', 'myScene')
+            ->addNode("out", "IKARUS.OUT.ANY", 'myScene')
+            ->addNode('in', 'IKARUS.IN.ANY', 'myScene')
+
+            ->addScene("linked", [ AttributedSceneDataModelInterface::ATTR_HIDDEN => 1 ])
+            ->addNode("exp_input", 'IKARUS.IN.ANY', 'linked')
+            ->addNode("exp_output", 'IKARUS.OUT.ANY', 'linked')
+
+            ->connect('node', 'myInput', 'in', 'output')
+            ->connect('out', 'input', 'node', 'myOutput')
+            ->connect("exp_output", 'input', 'exp_input', 'output')
+
+            ->pair('linked', 'node', [
+                'myInput' => 'exp_input.output',
+                'myOutput' => 'exp_output.input'
+            ])
+        ;
+
+
+        $compiler = new StandardCompiler($cModel);
+
+        $result = new CompilerResult();
+
+        $compiler->compile($dModel, $result);
+
+        $this->assertEquals([
+            'exp_input:output' => [
+                [
+                    'dn' => 'in',
+                    'dk' => 'output',
+                    'gw' => '-'
+                ]
+            ],
+            'out:input' => [
+                [
+                    'dn' => 'exp_output',
+                    'dk' => 'input',
+                    'gw' => '+'
+                ]
+            ],
+            'exp_output:input' => [
+                [
+                    'dn' => 'exp_input',
+                    'dk' => 'output'
+                ]
+            ]
+        ], $result->getAttribute( ExecutableCompiler::RESULT_ATTRIBUTE_EXECUTABLE )['i2o']);
+    }
+
+    public function testSignalGatewayCompilation() {
+        $cModel = (new PriorityComponentModel())
+            ->addPackage(new BasicTypesPackage())
+            ->addComponent(new SceneGatewayComponent())
+            ->addPackage(new ExposedSocketsPackage('Signal'))
+        ;
+
+        $dModel = (new DataModel())
+            ->addScene("myScene")
+            ->addNode("node", 'IKARUS.GATEWAY', 'myScene')
+            ->addNode("out", "IKARUS.OUT.SIGNAL", 'myScene')
+            ->addNode('in', 'IKARUS.IN.SIGNAL', 'myScene')
+
+            ->addScene("linked", [ AttributedSceneDataModelInterface::ATTR_HIDDEN => 1 ])
+            ->addNode("exp_input", 'IKARUS.IN.SIGNAL', 'linked')
+            ->addNode("exp_output", 'IKARUS.OUT.SIGNAL', 'linked')
+
+            ->connect('node', 'myInput', 'in', 'output')
+            ->connect('out', 'input', 'node', 'myOutput')
+            ->connect("exp_output", 'input', 'exp_input', 'output')
+
+            ->pair('linked', 'node', [
+                'myInput' => 'exp_input.output',
+                'myOutput' => 'exp_output.input'
+            ])
+        ;
+
+
+        $compiler = new StandardCompiler($cModel);
+
+        $result = new CompilerResult();
+
+        $compiler->compile($dModel, $result);
+
+        $this->assertEquals([
+            'in:output' => [
+                [
+                    'dn' => 'exp_input',
+                    'dk' => 'output',
+                    'gw' => '+'
+                ]
+            ],
+            'exp_output:input' => [
+                [
+                    'dn' => 'out',
+                    'dk' => 'input',
+                    'gw' => '-'
+                ]
+            ],
+            'exp_input:output' => [
+                [
+                    'dn' => 'exp_output',
+                    'dk' => 'input'
+                ]
+            ]
+        ], $result->getAttribute( ExecutableCompiler::RESULT_ATTRIBUTE_EXECUTABLE )['o2i']);
     }
 }
