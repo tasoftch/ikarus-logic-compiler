@@ -78,7 +78,6 @@ class ConnectionConsistencyCompiler extends AbstractCompiler
 
                             $findSocket = function($name, $sockets, NodeDataModelInterface $node, ComponentInterface $component) use ($gateways) {
                                 /** @var SocketComponentInterface $socket */
-                                $gateway = false;
                                 foreach($sockets as $socket) {
                                     if($socket->getName() == $name)
                                         return $socket;
@@ -92,7 +91,6 @@ class ConnectionConsistencyCompiler extends AbstractCompiler
                             };
 
                             $component = $components[ $inputNode->getComponentName() ];
-                            $go = $gi = NULL;
 
                             $inputSocketComponent = $findSocket( $connectionDataModel->getInputSocketName(), $component->getInputSockets(), $inputNode, $component);
                             if(!$inputSocketComponent) {
@@ -128,26 +126,12 @@ class ConnectionConsistencyCompiler extends AbstractCompiler
                                     throw $e;
                                 }
 
-                                if($gi||$go) {
-                                    $gw = "-";
-                                    if($go)
-                                        $gw = '+';
-
-                                    $connections[] = [
-                                        $gi?:$inputNode,
-                                        $inputSocketComponent,
-                                        $go?:$outputNode,
-                                        $outputSocketComponent,
-                                        'gw' => $gw
-                                    ];
-                                } else {
-                                    $connections[] = [
-                                        $inputNode,
-                                        $inputSocketComponent,
-                                        $outputNode,
-                                        $outputSocketComponent
-                                    ];
-                                }
+                                $connections[] = [
+                                    $inputNode,
+                                    $inputSocketComponent,
+                                    $outputNode,
+                                    $outputSocketComponent
+                                ];
                             } else {
                                 $e = new InvalidNodeReferenceException("Connection output node %s does not exist", InvalidNodeReferenceException::CODE_SYMBOL_NOT_FOUND, NULL, $connectionDataModel->getOutputNodeIdentifier());
                                 $e->setProperty($connectionDataModel);

@@ -30,6 +30,7 @@ use Ikarus\Logic\Compiler\Consistency\ConnectionConsistencyCompiler;
 use Ikarus\Logic\Compiler\Consistency\SocketComponentMappingCompiler;
 use Ikarus\Logic\Compiler\Exception\DuplicateSocketReferenceException;
 use Ikarus\Logic\Compiler\Exception\MissingSignalExecutableException;
+use Ikarus\Logic\Component\Socket\GatewaySocketComponentInterface;
 use Ikarus\Logic\Model\Component\Socket\InputSocketComponentInterface;
 use Ikarus\Logic\Model\Component\Socket\OutputSocketComponentInterface;
 use Ikarus\Logic\Model\Component\Socket\Type\SignalTypeInterface;
@@ -71,7 +72,6 @@ class ExecutableCompiler extends AbstractCompiler
                          * @var OutputSocketComponentInterface $outputSocketComponent
                          */
                         list($inputNode, $inputSocketComponent, $outputNode, $outputSocketComponent) = $connection;
-                        $isGateway = $connection["gw"] ?? false;
 
                         $inputType = $types[ $inputSocketComponent->getSocketType() ];
 
@@ -105,11 +105,6 @@ class ExecutableCompiler extends AbstractCompiler
                                 $e->setProperty($outputSocketComponent);
                                 throw $e;
                             }
-
-                            switch ($isGateway) {
-                                case '-': $isGateway = '+'; break;
-                                case '+': $isGateway = '-'; break;
-                            }
                         } else {
                             // Is expression socket
                             $nodeData = [
@@ -139,8 +134,18 @@ class ExecutableCompiler extends AbstractCompiler
                             }
                         }
 
-                        if($isGateway)
-                            $nodeData["gw"] = $isGateway;
+                        if($outputSocketComponent instanceof GatewaySocketComponentInterface) {
+                            $exec["nd"][$outputNode->getIdentifier()]['a']["gw"][$outputSocketComponent->getName()] = [
+                                'dn' => $outputSocketComponent->getNodeDataModel()->getIdentifier(),
+                                'dk' => $outputSocketComponent->getTargetSocket()->getName()
+                            ];
+                        }
+                        if($inputSocketComponent instanceof GatewaySocketComponentInterface) {
+                            $exec["nd"][$inputNode->getIdentifier()]['a']["gw"][$inputSocketComponent->getName()] = [
+                                'dn' => $inputSocketComponent->getNodeDataModel()->getIdentifier(),
+                                'dk' => $inputSocketComponent->getTargetSocket()->getName()
+                            ];
+                        }
 
                         $exec[$q][$k][] = $nodeData;
                     }
