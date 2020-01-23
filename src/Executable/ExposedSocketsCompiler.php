@@ -77,7 +77,7 @@ class ExposedSocketsCompiler extends AbstractCompiler
                 $findNodes = function($component, $sname, $md, &$list) use ($nodes, $isSilent) {
                     /** @var NodeDataModelInterface $node */
                     foreach($nodes as $node) {
-                        if($node->getComponentName() == $component && !$isSilent($node->getIdentifier()))
+                        if($node->getComponentName() == $component && !@$isSilent($node->getIdentifier()))
                             $list[$md][$component][$sname][] = $node->getIdentifier();
                     }
                 };
