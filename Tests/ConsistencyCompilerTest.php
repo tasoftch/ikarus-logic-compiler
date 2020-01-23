@@ -487,7 +487,7 @@ class ConsistencyCompilerTest extends TestCase
         $this->assertEmpty($result->getAttribute( GatewayConsistencyCompiler::RESULT_ATTRIBUTE_GATEWAYS ));
     }
 
-    public function testSimpleGateway() {
+    public function te_stSimpleGateway() {
         $cModel = (new PriorityComponentModel())
             ->addPackage(new BasicTypesPackage())
             ->addComponent(new SceneGatewayComponent())

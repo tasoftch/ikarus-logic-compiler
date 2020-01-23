@@ -440,6 +440,8 @@ class ExecutableCompilationTest extends TestCase
 
         $compiler->compile($dModel, $result);
 
+        print_r($result->getAttribute( ExecutableCompiler::RESULT_ATTRIBUTE_EXECUTABLE )['i2o']);
+
         $this->assertEquals([
             'exp_input:output' => [
                 [

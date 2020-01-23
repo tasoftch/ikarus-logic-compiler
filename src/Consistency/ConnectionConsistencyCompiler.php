@@ -30,6 +30,8 @@ use Ikarus\Logic\Compiler\Exception\InvalidNodeRecursionReferenceException;
 use Ikarus\Logic\Compiler\Exception\InvalidNodeReferenceException;
 use Ikarus\Logic\Compiler\Exception\InvalidSocketReferenceException;
 use Ikarus\Logic\Compiler\Exception\InvalidSocketTypesReferenceException;
+use Ikarus\Logic\Component\SceneGatewayComponent;
+use Ikarus\Logic\Model\Component\ComponentInterface;
 use Ikarus\Logic\Model\Component\NodeComponentInterface;
 use Ikarus\Logic\Model\Component\Socket\SocketComponentInterface;
 use Ikarus\Logic\Model\Data\DataModelInterface;
@@ -74,7 +76,7 @@ class ConnectionConsistencyCompiler extends AbstractCompiler
                         /** @var NodeDataModelInterface $inputNode */
                         if($inputNode = $nodes[ $connectionDataModel->getInputNodeIdentifier() ] ?? NULL) {
 
-                            $findSocket = function($name, $sockets, NodeDataModelInterface $node, &$gateway) use ($gateways) {
+                            $findSocket = function($name, $sockets, NodeDataModelInterface $node, ComponentInterface $component) use ($gateways) {
                                 /** @var SocketComponentInterface $socket */
                                 $gateway = false;
                                 foreach($sockets as $socket) {
@@ -82,9 +84,8 @@ class ConnectionConsistencyCompiler extends AbstractCompiler
                                         return $socket;
                                 }
                                 // Internal gateway resolution
-                                if(isset($gateways[ $node->getIdentifier() ][$name])) {
-                                    list($sck, $gateway) = $gateways[ $node->getIdentifier() ][$name];
-                                    return $sck;
+                                if($component instanceof SceneGatewayComponent) {
+                                    return $component->getDynamicSocket($name, $node, $gateways);
                                 }
 
                                 return NULL;
@@ -93,7 +94,7 @@ class ConnectionConsistencyCompiler extends AbstractCompiler
                             $component = $components[ $inputNode->getComponentName() ];
                             $go = $gi = NULL;
 
-                            $inputSocketComponent = $findSocket( $connectionDataModel->getInputSocketName(), $component->getInputSockets(), $inputNode, $gi);
+                            $inputSocketComponent = $findSocket( $connectionDataModel->getInputSocketName(), $component->getInputSockets(), $inputNode, $component);
                             if(!$inputSocketComponent) {
                                 $e = new InvalidSocketReferenceException("Input socket connection %s of node %s is not declared", InvalidSocketReferenceException::CODE_SYMBOL_NOT_FOUND, NULL, $connectionDataModel->getInputSocketName(), $component->getName());
                                 $e->setProperty($connectionDataModel);
@@ -109,7 +110,7 @@ class ConnectionConsistencyCompiler extends AbstractCompiler
                                 }
 
                                 $component = $components[ $outputNode->getComponentName() ];
-                                $outputSocketComponent = $findSocket( $connectionDataModel->getOutputSocketName(), $component->getOutputSockets(), $outputNode, $go);
+                                $outputSocketComponent = $findSocket( $connectionDataModel->getOutputSocketName(), $component->getOutputSockets(), $outputNode, $component);
                                 if(!$outputSocketComponent) {
                                     $e = new InvalidSocketReferenceException("Output socket connection %s of node %s is not declared", InvalidSocketReferenceException::CODE_SYMBOL_NOT_FOUND, NULL, $connectionDataModel->getOutputSocketName(), $component->getName());
                                     $e->setProperty($connectionDataModel);
